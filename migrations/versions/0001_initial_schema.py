@@ -23,7 +23,14 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "telemetry_log",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
+        # The writer inserts through raw asyncpg without an id, so the database
+        # generates it. `uuidv7()` is native from Postgres 18.
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            server_default=sa.text("uuidv7()"),
+            nullable=False,
+        ),
         sa.Column("trace_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("kind", sa.String(length=32), nullable=False),
         sa.Column("service", sa.String(length=64), nullable=False),
@@ -40,7 +47,12 @@ def upgrade() -> None:
         sa.Column("status_code", sa.SmallInteger(), nullable=True),
         sa.Column("user_agent", sa.Text(), nullable=True),
         sa.Column("message", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("idx_telemetry_log__trace_id", "telemetry_log", ["trace_id"])

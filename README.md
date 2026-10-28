@@ -142,8 +142,12 @@ machine. Inside the compose network, services use their standard ports, and
 
 ## Conventions
 
-**Identifiers are UUIDv7** (`ID_T`). They're ordered by time, so they index
-like a sequence and still can't be guessed.
+**Every id is a UUIDv7**: primary keys (`ID_T`), event ids and trace ids.
+They're ordered by time, so they index like a sequence and still can't be
+guessed. The app generates them (`shared_kernel/utils/functions/uuid_funcs.py`,
+stdlib `uuid.uuid7` on 3.14+), and every primary key also has a
+`server_default` of `uuidv7()`, so raw-SQL inserts get one too. That needs
+**PostgreSQL 18+**; the compose image is 18.6.
 
 **Tables carry a bounded-context prefix** (`billing_invoice`, `telemetry_log`).
 All table names live in one enum, `data_access/orm/constants/db_constants.py`.

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import SmallInteger, DateTime, String, Boolean, false
+from sqlalchemy import SmallInteger, DateTime, String, Boolean, false, text
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -19,13 +19,16 @@ from src.app.shared_kernel.utils.functions.uuid_funcs import uuid7
 class SqlAlchemyBaseModel(DeclarativeBase):
     @declared_attr
     def id(cls) -> Mapped[ID_T]:
-        # Generated application-side rather than by a DB default, so the value
-        # exists without asking the database for it. `default=` fires at INSERT;
-        # aggregates get their id earlier still (see SqlAlchemyEntitySourceFactory).
+        # UUIDv7 on both sides. The application generates it (`default=`, or
+        # earlier still for aggregates: see SqlAlchemyEntitySourceFactory), so
+        # the value exists without asking the database. `server_default` covers
+        # raw-SQL inserts that bypass the ORM; `uuidv7()` is native from
+        # Postgres 18.
         return mapped_column(
             PgUUID(as_uuid=True),
             primary_key=True,
             default=uuid7,
+            server_default=text("uuidv7()"),
         )
 
 
