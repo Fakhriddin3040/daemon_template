@@ -1,0 +1,33 @@
+FROM python:3.12-slim AS base
+
+# The application lives at /app — the image mirrors what the project is, so a
+# path inside the container reads the same as a path in the repo.
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONFAULTHANDLER=1 \
+    PIP_NO_CACHE_DIR=1 \
+    APP_DIR=/app
+
+WORKDIR $APP_DIR
+
+# libpq + a compiler for the few wheels that still build from source.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+        libpq-dev \
+        postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Dependencies first: this layer is cached until the requirement files change,
+# so an ordinary code edit does not reinstall the world.
+COPY requirements/ $APP_DIR/requirements/
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip && pip install -r requirements/prod.txt
+
+COPY . $APP_DIR/
+
+RUN chmod +x ${APP_DIR}/scripts/*.sh \
+    && mkdir -p ${APP_DIR}/logs \
+    && chmod -R 777 ${APP_DIR}/logs
+
+CMD ["./scripts/start_app.sh"]
