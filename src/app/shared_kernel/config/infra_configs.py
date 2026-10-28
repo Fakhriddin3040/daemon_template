@@ -40,6 +40,19 @@ class DatabaseConfig(BasePydanticConfig):
         return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
 
 
+class DaemonConfig(BasePydanticConfig):
+    """Everything under ``DAEMON_*``: the process runner and its liveness probe."""
+
+    model_config = SettingsConfigDict(env_prefix="DAEMON_")
+
+    heartbeat_file: str = Field(default="/tmp/daemon.heartbeat")
+    heartbeat_interval: float = Field(default=30.0, gt=0)
+    # Older than this and the healthcheck fails. Keep it a few intervals wide so
+    # one slow tick does not flap the container.
+    heartbeat_max_age: float = Field(default=90.0, gt=0)
+    stop_timeout: float = Field(default=30.0, gt=0)
+
+
 class RedisConfig(BasePydanticConfig):
     """Everything under ``REDIS_*``."""
 
@@ -62,7 +75,7 @@ class TelegramConfig(BasePydanticConfig):
     (``-100123456789:12``, where ``12`` is the topic's ``message_thread_id``).
     ``service_routes`` / ``level_routes`` map an event's service or level to its
     own destination (same ``chat[:thread]`` format), e.g.
-    ``TELEGRAM_SERVICE_ROUTES=app=-100123:12,telemetry=-100123:34`` - handy for
+    ``TELEGRAM_SERVICE_ROUTES=daemon=-100123:12,telemetry=-100123:34`` - handy for
     one topic per service inside a single private supergroup.
     """
 
@@ -87,8 +100,8 @@ class TelemetryConfig(BasePydanticConfig):
     model_config = SettingsConfigDict(env_prefix="TELEMETRY_")
 
     # Which process wrote a record. One log file per service; the daemon tails
-    # them all. Each container overrides it (app, telemetry, ...).
-    service: str = Field(default="app")
+    # them all. Each container overrides it (daemon, telemetry, ...).
+    service: str = Field(default="daemon")
 
     log_dir: str = Field(default="logs")
     poll_interval: float = Field(default=0.5)

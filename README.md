@@ -1,8 +1,9 @@
-# app_template
+# daemon_template
 
-A base project for a Python **application** to clone: something that isn't an
-HTTP API, such as a daemon, a worker, a bot or a custom server. Database,
-cache, DI, a process runner and telemetry are already wired. There are no
+A base project for a Python **daemon** to clone: a worker, a scheduler, a
+bot, a consumer, anything long-running that isn't an HTTP API. A supervised
+service runner, a liveness probe, the database, cache, DI and telemetry are
+already wired. There are no
 models, no users and no API, so you start with your own `core` and none of
 someone else's.
 
@@ -14,7 +15,7 @@ someone else's.
 ## Quick start
 
 ```bash
-git clone <this> my-app && cd my-app
+git clone <this> my-daemon && cd my-daemon
 cp .env.example .env
 python scripts/utils/generate_secret.py   # paste the two secrets into .env
 
@@ -27,10 +28,11 @@ alembic upgrade head
 python main.py          # Ctrl+C to stop
 ```
 
-Out of the box `main.py` runs one `HeartbeatDaemon` that logs once a minute.
-Replace it with your own services in `build_services()`.
+Out of the box `main.py` runs a `HeartbeatDaemon`, which keeps the liveness
+file fresh and logs every `DAEMON_HEARTBEAT_INTERVAL` seconds. Add your own
+services next to it in `build_services()`.
 
-Or with Docker (app + db + redis + telemetry):
+Or with Docker (daemon + db + redis + telemetry):
 
 ```bash
 docker compose up --build
@@ -42,6 +44,7 @@ docker compose up --build
 
 ```
 main.py                       entrypoint: DI + ServiceRunner
+scripts/healthcheck.py        liveness probe (compose healthcheck)
 runner.py                     telemetry daemon entrypoint
 src/
 ├── bootstrap.py              DI wiring, async startup, shutdown
@@ -108,6 +111,15 @@ Docker or systemd restarts the process only when it should.
 fresh `ExecutionContext` (with a `trace_id`), a DB session that repositories
 resolve through `db.session`, and a unit of work.
 
+### Liveness
+
+Restarting only when the process crashes misses the worst failure a daemon
+has: hanging while still alive. Every heartbeat touches
+`DAEMON_HEARTBEAT_FILE`. `scripts/healthcheck.py` exits 1 once that file is
+older than `DAEMON_HEARTBEAT_MAX_AGE`, or missing (the daemon removes it on
+stop). Compose runs it as the `daemon` service's healthcheck. Point any other
+supervisor (k8s `exec` probe, systemd watchdog script) at the same script.
+
 ---
 
 ## Telemetry
@@ -127,6 +139,7 @@ that owns it. There are no unprefixed variables and no per-field aliases.
 | Prefix | Class | Holds |
 |---|---|---|
 | `APP_` | `AppConfig` | environment, timezone, secrets |
+| `DAEMON_` | `DaemonConfig` | heartbeat file/interval/max age, stop timeout |
 | `POSTGRES_` | `DatabaseConfig` | connection |
 | `REDIS_` | `RedisConfig` | connection |
 | `TELEMETRY_` | `TelemetryConfig` | service name, sinks, gates |
@@ -186,7 +199,7 @@ alembic downgrade -1
 
 `0001` creates only the telemetry tables. The database URL comes from `.env`
 through `DatabaseConfig` (see `migrations/env.py`). The container start script
-runs `alembic upgrade head` before `main.py`.
+(`scripts/start_daemon.sh`) runs `alembic upgrade head` before `main.py`.
 
 ## Tests
 

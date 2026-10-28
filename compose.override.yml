@@ -4,7 +4,7 @@
 # the *host* side — where each service is published and how you reach it from
 # your machine.
 services:
-  app:
+  daemon:
     build:
       context: .
       dockerfile: Dockerfile
@@ -14,10 +14,10 @@ services:
       POSTGRES_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      TELEMETRY_SERVICE: app
+      TELEMETRY_SERVICE: daemon
     volumes:
       - .:/app
-      # Shared with the telemetry service: the daemon tails what the app writes.
+      # Shared with the telemetry service: the telemetry daemon tails what this one writes.
       - logs:/app/logs
 
   telemetry:

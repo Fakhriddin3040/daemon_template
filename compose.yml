@@ -2,18 +2,26 @@
 # the build context, env files, ports and volumes; keeping them apart means a
 # deployment can swap the override without touching this file.
 services:
-  app:
-    image: ${COMPOSE_PROJECT_NAME:-app_template}-app
+  daemon:
+    image: ${COMPOSE_PROJECT_NAME:-daemon_template}-daemon
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+    healthcheck:
+      # Fails once the heartbeat file goes stale: catches a hung event loop,
+      # which a crash-only restart policy never would.
+      test: ["CMD", "python3", "scripts/healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
     networks: [backend]
 
   telemetry:
-    image: ${COMPOSE_PROJECT_NAME:-app_template}-app
+    image: ${COMPOSE_PROJECT_NAME:-daemon_template}-daemon
     restart: unless-stopped
     command: ./scripts/start_telemetry.sh
     depends_on:
@@ -22,13 +30,13 @@ services:
     networks: [backend]
 
   db:
-    image: ${COMPOSE_PROJECT_NAME:-app_template}-db
+    image: ${COMPOSE_PROJECT_NAME:-daemon_template}-db
     restart: unless-stopped
     volumes:
       - "./postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf:ro"
       - "./postgres/config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro"
     healthcheck:
-      # The app's start script runs migrations immediately, so it must not start
+      # The daemon's start script runs migrations immediately, so it must not start
       # against a postgres that is still initialising.
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -44,7 +52,7 @@ services:
 networks:
   backend:
     driver: bridge
-    name: ${COMPOSE_PROJECT_NAME:-app_template}-backend
+    name: ${COMPOSE_PROJECT_NAME:-daemon_template}-backend
 
 volumes:
   postgres_data:

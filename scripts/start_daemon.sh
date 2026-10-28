@@ -11,5 +11,5 @@ cd "${APP_DIR}"
 echo "Applying migrations"
 alembic upgrade head
 
-echo "Starting application"
+echo "Starting daemon"
 exec python3 main.py

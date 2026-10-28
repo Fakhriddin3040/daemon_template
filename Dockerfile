@@ -30,4 +30,4 @@ RUN chmod +x ${APP_DIR}/scripts/*.sh \
     && mkdir -p ${APP_DIR}/logs \
     && chmod -R 777 ${APP_DIR}/logs
 
-CMD ["./scripts/start_app.sh"]
+CMD ["./scripts/start_daemon.sh"]

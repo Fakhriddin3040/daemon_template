@@ -11,6 +11,7 @@ import pytest
 from src.app.shared_kernel.config.app_config import AppConfig
 from src.app.shared_kernel.config.base_pydantic_config import BasePydanticConfig
 from src.app.shared_kernel.config.infra_configs import (
+    DaemonConfig,
     DatabaseConfig,
     RedisConfig,
     TelegramConfig,
@@ -21,6 +22,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.shared_kernel]
 
 CONFIGS = [
     (AppConfig, "APP_"),
+    (DaemonConfig, "DAEMON_"),
     (DatabaseConfig, "POSTGRES_"),
     (RedisConfig, "REDIS_"),
     (TelemetryConfig, "TELEMETRY_"),

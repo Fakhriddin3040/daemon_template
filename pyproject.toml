@@ -5,9 +5,9 @@
 # Whichever tool a fork prefers, the dependency set is the same one.
 
 [project]
-name = "app_template"
+name = "daemon_template"
 version = "0.1.0"
-description = "Base application project: SQLAlchemy + Postgres + Redis, a service runner for daemons, and telemetry. No API, no domain."
+description = "Base daemon project: a supervised asyncio service runner with SQLAlchemy + Postgres + Redis and telemetry. No API, no domain."
 authors = [
     { name = "Fakhriddin", email = "fahriddin3040@gmail.com" },
 ]
